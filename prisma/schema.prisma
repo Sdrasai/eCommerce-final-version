@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+enum Role {
+  Owner
+  Admin
+  User
+}
+
+enum Rating {
+  None
+  One
+  Two
+  Three
+  Four
+  Five
+}
+
+enum OrderStatus {
+  FailedToPay
+  Paying
+  Paid
+}
+
+model User {
+  userId    String    @id @default(uuid())
+  userName  String    @unique
+  password  String
+  email     String    @unique
+  role      Role      @default(User)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Comment   Comment[]
+  Profile   Profile?
+  Cart      Cart?
+  Order     Order[]
+  Token     Token[]
+}
+
+model Profile {
+  profileId   String   @id @default(uuid())
+  forUser     String   @unique
+  user        User     @relation(fields: [forUser], references: [userId], onDelete: Cascade)
+  image       String?
+  address     String?
+  age         String?
+  phoneNumber String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  productId      String           @id @default(uuid())
+  productName    String
+  price          String
+  count          Int
+  attributes     Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  Comment        Comment[]
+  CategoryId     String?
+  Category       Category?        @relation(fields: [CategoryId], references: [categoryId])
+  ProductToCart  ProductToCart[]
+}
+
+model Comment {
+  commentId String   @id @default(uuid())
+  message   String
+  rating    Rating   @default(None)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  byUser    String
+  user      User     @relation(fields: [byUser], references: [userId], onDelete: Cascade)
+  onProduct String
+  product   Product  @relation(fields: [onProduct], references: [productId], onDelete: Cascade)
+}
+
+model Category {
+  categoryId String     @id @default(uuid())
+  title      String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  parentId   String?
+  parent     Category?  @relation("CategoryParent", fields: [parentId], references: [categoryId], onDelete: Cascade)
+  childrens  Category[] @relation("CategoryParent")
+  Product    Product[]
+}
+
+model Cart {
+  cartId        String          @id @default(uuid())
+  forUser       String          @unique
+  user          User            @relation(fields: [forUser], references: [userId], onDelete: Cascade)
+  ProductToCart ProductToCart[]
+}
+
+model ProductToCart {
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [cartId], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  count     Int
+
+  @@id([cartId, productId])
+}
+
+model Order {
+  orderId        String           @id @default(uuid())
+  status         OrderStatus      @default(Paying)
+  totalPrice     Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  byUser         String
+  user           User             @relation(fields: [byUser], references: [userId], onDelete: Cascade)
+  orderProducts  Json
+}
+
+model Token {
+  tokenId    String   @id @default(uuid())
+  forUser    String
+  user       User     @relation(fields: [forUser], references: [userName], onDelete: Cascade)
+  token      String
+  loggedInAt DateTime @default(now())
+}
+
+// NO SELLER!
